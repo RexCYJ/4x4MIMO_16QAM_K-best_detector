@@ -7,11 +7,11 @@
 #include <random>
 #include "MIMO_4x4.h"
 
-#define TEST_NUM 3000000
+#define TEST_NUM 100000
 
 using std::norm;
 
-const double NOISE_SIGMA = 0.0562;
+const double NOISE_SIGMA = 0.0398;
 
 const double NOISE_R_SIGMA = sqrt(NOISE_SIGMA * NOISE_SIGMA * 2);
 const double H_X_SIGMA = 0.35355;		// 1/sqrt(8)
@@ -52,7 +52,7 @@ int main(void)
 	x_bit_dtc = new unsigned char[M];
 
 	for (int i = 0; i < TEST_NUM; i++) {
-		// cout << endl << "ITER: " << i << endl;
+		// cout << endl << "ITER: " << i << " ___________________________\n" << endl;
 
 		for (int j = 0; j < N; j++) {
 			x_bit[j] = xrand(rand_gen);
@@ -63,30 +63,36 @@ int main(void)
 		
 		channel(H, y_normal, x_normal);						// pass x through the simulated channel
 		
-		// cout << "x: " << x_normal[0] << x_normal[1] <<endl;	
-		// cout << "y: " << y_normal[0] << y_normal[1] <<endl;	
-		
-		module1.setH(H);									// Feed the H and Y to detector
-		module1.setY(y_normal);
-		module1.detect();									// detect	
-		module1.getX(x_dtc);								// get the solved x symbol
+		// for (int l = 0; l < N; l++)
+		// 	printf("%3d %3d ", x_symbol[l].real(), x_symbol[l].imag());
+		// cout << endl;
+
+		// module1.setH(H);									// Feed the H and Y to detector
+		// module1.setY(y_normal);
+		// module1.detect();									// detect	
+		// module1.getX(x_dtc);								// get the solved x symbol
 		// module1.output_X_CSV(x_symbol);
 		// module1.output_R_tmn();
 
+		module1.q_detect(H, y_normal);
+		module1.getX(x_dtc);								// get the solved x symbol
+
+
+		// check result
 		for (int j = 0; j < N; j++) {
 			x_bit_dtc[j] = int2bit_dec(x_dtc[j]);
 			Bit_err[j] = check(x_bit[j], x_bit_dtc[j]);
 			total_Bit_err += Bit_err[j];
-			total_Sym_err += (Bit_err[j] > 0)? 1:0;	
+			total_Sym_err += (Bit_err[j] > 0)? 1:0;
 		}
 
 		// ERROR checking
 		// if (Bit_err[0] || Bit_err[1]) {
 		// 	cout << endl << "ERROR: " << endl;
-		// 	std::bitset<4> bs1(x_bit[0]);
-		// 	std::bitset<4> bs2(x_bit[1]);
-		// 	cout << "bit1: " << bs1 << "  --->   symbol1: " << x_symbol[0] << endl;
-		// 	cout << "bit2: " << bs2 << "  --->   symbol2: " << x_symbol[1] << endl;
+			// std::bitset<4> bs1(x_bit[0]);
+			// std::bitset<4> bs2(x_bit[1]);
+			// cout << "bit1: " << bs1 << "  --->   symbol1: " << x_symbol[0] << endl;
+			// cout << "bit2: " << bs2 << "  --->   symbol2: " << x_symbol[1] << endl;
 		// 	cout << "X symbol detect: " << x_dtc[0] << endl;
 		// 	cout << "X symbol detect: " << x_dtc[1] << endl;
 		// 	std::bitset<4> bs3(x_bit_dtc[0]);
@@ -98,7 +104,8 @@ int main(void)
 		// y_total += sqrt(norm(y_normal[0]));
 		// x_total += sqrt(norm(x_normal[0]));
 		// H_total += sqrt(norm(H[0][0]) + norm(H[0][1]) + norm(H[0][2]) + norm(H[0][3]));
-		if (i % (TEST_NUM / 10) == 0) cout << i / (TEST_NUM / 100) << "%\n";
+
+		if (i % (TEST_NUM / 10) == 0) printf("%2d\%\n", i / (TEST_NUM / 100));
 	}
 
 	// cout << "E[|x|] = " << x_total / TEST_NUM << endl;
