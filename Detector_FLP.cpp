@@ -8,7 +8,8 @@ void MIMO_4x4::detect()
 	// output_Matrix_CSV();
 	
 	// Kbest();
-	Kbest3();
+	// Kbest3();
+	Kbest4();
 	// Kbest_optiK();
 	// ML();
 
@@ -17,15 +18,17 @@ void MIMO_4x4::detect()
 
 void MIMO_4x4::Kbest_optiK()
 {
-	const int K = 3;					// the number of candidates
+	const int K_MAX = 3;
+	int K = 3;					// the number of candidates
 	vector<int> path(8, 0);				// selected X
-	vector<vector<int>> temp(K, path);	// store the next level candidate
-	vector<vector<int>> Kpath(K, path);	// the K solutions
-	double T[K] = {0}, tempT[K] = {0};	// the path error accumulator
-	double CurLevelErr[K] = {0};
-	pair<int, double> kcand[K];			// store the possible candidate
+	vector<vector<int>> temp(K_MAX, path);	// store the next level candidate
+	vector<vector<int>> Kpath(K_MAX, path);	// the K solutions
+	double T[K_MAX] = {0}, tempT[K_MAX] = {0};	// the path error accumulator
+	double CurLevelErr[K_MAX] = {0};
+	pair<int, double> kcand[K_MAX];			// store the possible candidate
 										// (index of QAM16_val[], error)
-	int ZZstep[K];
+	// int ZZstep[K];
+	pair<int, int> order[K_MAX];			// <type of enum path, current index>
 
 	double err = 0, minerr = 0, accumErr = 0,hx = 0;
 	double Err[3];
@@ -36,15 +39,17 @@ void MIMO_4x4::Kbest_optiK()
 
 	// run through all possible combination in the lowest two level
 	// search the best path to the third lowest level
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {		// L7
 		err = Yexp[7] - (R[7][7] * QAM16_normval[i]);
 		accumErr = err * err;
-		for (j = 0; j < 4; j++) {
+		for (j = 0; j < 4; j++) {		// L6
 			err = Yexp[6] - (R[6][6] * QAM16_normval[j] + R[6][7] * QAM16_normval[i]);
 			accumErr += Err[1] = err * err;
-			for (int l = 0; l < 4; l++) {
+
+			for (int l = 0; l < 4; l++) {		// L5
 				err = Yexp[5] - (R[5][5] * QAM16_normval[l] + R[5][6] * QAM16_normval[j] + R[5][7] * QAM16_normval[i]);
 				accumErr += Err[2] = err * err;
+
 				if (accumErr < kcand[0].second) {
 					kcand[2] = kcand[1];
 					kcand[1] = kcand[0];
@@ -67,52 +72,42 @@ void MIMO_4x4::Kbest_optiK()
 		}
 	}
 
-	// Kpath.at(0).at(5) = kcand[0].first;			// lowest error path
-	// Kpath.at(1).at(5) = kcand[1].first;
-	// Kpath.at(2).at(5) = kcand[2].first;
 	T[0] = kcand[0].second;
 	T[1] = kcand[1].second;
 	T[2] = kcand[2].second;
 
 	for (int l = 4; l >= 0; l--) {				// search each level
-		// Find the first best child of each path
-
-		// for (k = 0; k < K; k++) {
-		// 	for (i = 7; i > l; i--)
-		// 		cout << Kpath[k][i] << " -> ";
-		// 	cout << endl;
-		// }
-
+		// Find the best child of each path
 		for (k = 0; k < K; k++) {
 			hx = 0;
 			// update the accumulated error
 			for (j = 7; j > l; j--) 
 				hx += R[l][j] * QAM16_normval[Kpath.at(k).at(j)];
 			CurLevelErr[k] = Yexp[l] - hx;					// the rest y value
+
 			// find the best first child
 			kcand[k].second = 100000;
 			for (i = 0; i < 4; i++) {
 				err = CurLevelErr[k] - R[l][l] * QAM16_normval[i];
 				accumErr = T[k] + err * err;
-				if (kcand[k].second > accumErr) 
+				if (kcand[k].second > accumErr) {
 					kcand[k] = make_pair(i, accumErr);
+					Kpath.at(k).at(l) = kcand[k].first;
+					order[k].first = kcand[k].first * 2;
+					if (err * R[l][l] > 0) order[k].first++;	// if err and R[l][l] are same sign, x > kcand[k].first so order + 1;
+					order[k].second = 0;	// start from first
+
+				}
 			}
-			Kpath.at(k).at(l) = kcand[k].first;
-			if (kcand[k].first == 3)
-				ZZstep[k] = -1;
-			else if (kcand[k].first == 0)
-				ZZstep[k] = 1;
-			else if (err * R[l][l] > 0)
-				ZZstep[k] = 1;
-			else if (err * R[l][l] < 0)
-				ZZstep[k] = -1;
 		}
 		
 		// find the best path
 		for (k = 0; k < K; k++) {
 			minerr = 10000;
 			bestpath = 0;
-			for (j = 0; j < K; j++)					// Find the current best path
+			
+			// Find the current best path
+			for (j = 0; j < K; j++)
 				if (kcand[j].second < minerr) {
 					bestpath = j;
 					minerr = kcand[j].second;
@@ -123,33 +118,124 @@ void MIMO_4x4::Kbest_optiK()
 
 			// replace the selected path with its sibling, select the neighbor child
 			// Zig-Zag searching
-			kcand[bestpath].first += ZZstep[bestpath];
-			if (kcand[bestpath].first < 0)
-				kcand[bestpath].first = 2;
-			else if (kcand[bestpath].first > 3)
-				kcand[bestpath].first = 1;
-			if (ZZstep[bestpath] > 0)
-				ZZstep[bestpath] = -(ZZstep[bestpath] + 1);
-			else if (ZZstep[bestpath] < 0)
-				ZZstep[bestpath] = -(ZZstep[bestpath] - 1);
+			if (k < 2) {
+				kcand[bestpath].first =zigzag_path[order[bestpath].first][order[bestpath].second];
+				order[bestpath].second++;
 
-			err = CurLevelErr[bestpath] - R[l][l] * QAM16_normval[kcand[bestpath].first];
-			accumErr = T[bestpath] + err * err;
-			kcand[bestpath].second = accumErr;
-			Kpath[bestpath][l] = kcand[bestpath].first;
+				// calculate the error of new path
+				err = CurLevelErr[bestpath] - R[l][l] * QAM16_normval[kcand[bestpath].first];
+				accumErr = T[bestpath] + err * err;
+				kcand[bestpath].second = accumErr;
+				Kpath[bestpath][l] = kcand[bestpath].first;
+			}
 		}
 
 		Kpath.at(0).assign(temp.at(0).begin(), temp.at(0).end());	// the best path
 		Kpath.at(1).assign(temp.at(1).begin(), temp.at(1).end());
 		Kpath.at(2).assign(temp.at(2).begin(), temp.at(2).end());
 		T[0] = tempT[0]; T[1] = tempT[1]; T[2] = tempT[2];
-		
-		// printf("T: %8.6f, %8.6f %8.6f\n", T[0], T[1], T[2]);
 	}
 	
+	// mapping
 	for (int j = 0; j < 8; j++)
 		x[j] = QAM16_val[Kpath[0][j]];
 }
+
+void MIMO_4x4::Kbest4()
+{
+	const int K = 4;					// the number of candidates
+	vector<int> path(8, 0);				// selected X
+	vector<vector<int>> temp(K, path);	// store the next level candidate
+	vector<vector<int>> Kpath(K, path);	// the K solutions
+	double T[K] = {0}, tempT[K] = {0};	// the path error accumulator
+	double CurLevelErr[K] = {0};
+	pair<int, double> kcand[K];			// store the possible candidate
+										// (index of QAM16_val[], error)
+	pair<int, int> order[K];			// <type of enum path, current index>
+	// int ZZstep[K];
+
+	double err = 0, minerr = 0, accumErr = 0,hx = 0;
+	int i, j, k, bestpath = 0;
+
+	for (i = 0; i < K; i++)
+		kcand[i] = make_pair(0, 100);	// initialize the candidate container
+
+	// initialize the level 7 of the i-th Kpath
+	for (i = 0; i < 4; i++) {
+		err = Yexp[7] - (R[7][7] * QAM16_normval[i]);
+		err = err * err;								// square
+		T[i] = err;
+		Kpath.at(i).at(7) = i;
+	}
+
+	for (int l = 6; l >= 0; l--) {				// search each level
+
+		// Find the first best child of each path
+		for (k = 0; k < K; k++) {
+			hx = 0;
+			// update the accumulated error
+			for (j = 7; j > l; j--) 
+				hx += R[l][j] * QAM16_normval[Kpath.at(k).at(j)];
+			CurLevelErr[k] = Yexp[l] - hx;					// the rest y value
+
+			// find the best first child
+			kcand[k].second = 100000;
+			for (i = 0; i < 4; i++) {
+				err = CurLevelErr[k] - R[l][l] * QAM16_normval[i];
+				accumErr = T[k] + err * err;
+				if (kcand[k].second > accumErr) {
+					kcand[k] = make_pair(i, accumErr);
+					Kpath.at(k).at(l) = kcand[k].first;
+					
+					order[k].first = kcand[k].first * 2;
+					if (err * R[l][l] > 0) order[k].first++;	// if err and R[l][l] are same sign, x > kcand[k].first so order + 1;
+					order[k].second = 0;	// start from first
+				}
+			}
+		}	// End finding best child
+		
+		// find the best path
+		for (k = 0; k < K; k++) {
+			minerr = 10000;
+			bestpath = 0;
+
+			// Find the current best path
+			for (j = 0; j < K; j++)					
+				if (kcand[j].second < minerr) {
+					bestpath = j;
+					minerr = kcand[j].second;
+				}
+			
+			// store the selected path to temp
+			temp.at(k).assign(Kpath[bestpath].begin(), Kpath[bestpath].end());
+			tempT[k] = kcand[bestpath].second;
+
+			// replace the selected path with its sibling, select the neighbor child
+			// Zig-Zag searching
+			if (k < 3) {
+				kcand[bestpath].first = zigzag_path[order[bestpath].first][order[bestpath].second];
+				order[bestpath].second++;
+
+				// calculate the error of new path
+				err = CurLevelErr[bestpath] - R[l][l] * QAM16_normval[kcand[bestpath].first];
+				accumErr = T[bestpath] + err * err;
+				kcand[bestpath].second = accumErr;
+				Kpath[bestpath][l] = kcand[bestpath].first;
+			}
+		}
+
+		Kpath.at(0).assign(temp.at(0).begin(), temp.at(0).end());	// the best path
+		Kpath.at(1).assign(temp.at(1).begin(), temp.at(1).end());
+		Kpath.at(2).assign(temp.at(2).begin(), temp.at(2).end());
+		Kpath.at(3).assign(temp.at(3).begin(), temp.at(3).end());
+		T[0] = tempT[0]; T[1] = tempT[1]; T[2] = tempT[2]; T[3] = tempT[3];
+	}
+
+	// mapping
+	for (int j = 0; j < 8; j++)
+		x[j] = QAM16_val[Kpath[0][j]];
+}
+
 
 void MIMO_4x4::Kbest3()
 {
@@ -211,25 +297,28 @@ void MIMO_4x4::Kbest3()
 			for (i = 0; i < 4; i++) {
 				err = CurLevelErr[k] - R[l][l] * QAM16_normval[i];
 				accumErr = T[k] + err * err;
-				if (kcand[k].second > accumErr) 
+				if (kcand[k].second > accumErr) {
 					kcand[k] = make_pair(i, accumErr);
+					Kpath.at(k).at(l) = kcand[k].first;
+					if (kcand[k].first == 3)
+						ZZstep[k] = -1;
+					else if (kcand[k].first == 0)
+						ZZstep[k] = 1;
+					else if (err * R[l][l] > 0)
+						ZZstep[k] = 1;
+					else if (err * R[l][l] < 0)
+						ZZstep[k] = -1;
+				}
 			}
-			Kpath.at(k).at(l) = kcand[k].first;
-			if (kcand[k].first == 3)
-				ZZstep[k] = -1;
-			else if (kcand[k].first == 0)
-				ZZstep[k] = 1;
-			else if (err * R[l][l] > 0)
-				ZZstep[k] = 1;
-			else if (err * R[l][l] < 0)
-				ZZstep[k] = -1;
 		}
 		
 		// find the best path
 		for (k = 0; k < K; k++) {
 			minerr = 10000;
 			bestpath = 0;
-			for (j = 0; j < K; j++)					// Find the current best path
+
+			// Find the current best path
+			for (j = 0; j < K; j++)					
 				if (kcand[j].second < minerr) {
 					bestpath = j;
 					minerr = kcand[j].second;
@@ -245,6 +334,8 @@ void MIMO_4x4::Kbest3()
 				kcand[bestpath].first = 2;
 			else if (kcand[bestpath].first > 3)
 				kcand[bestpath].first = 1;
+			
+			// Update zigzag step
 			if (ZZstep[bestpath] > 0)
 				ZZstep[bestpath] = -(ZZstep[bestpath] + 1);
 			else if (ZZstep[bestpath] < 0)

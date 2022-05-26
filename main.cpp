@@ -7,11 +7,11 @@
 #include <random>
 #include "MIMO_4x4.h"
 
-#define TEST_NUM 100000
-
 using std::norm;
 
-const double NOISE_SIGMA = 0.0398;
+const int64_t TEST_NUM = 50000;
+
+const double NOISE_SIGMA = 0.0224;
 
 const double NOISE_R_SIGMA = sqrt(NOISE_SIGMA * NOISE_SIGMA * 2);
 const double H_X_SIGMA = 0.35355;		// 1/sqrt(8)
@@ -51,7 +51,7 @@ int main(void)
 	x_bit = new unsigned char[M];
 	x_bit_dtc = new unsigned char[M];
 
-	for (int i = 0; i < TEST_NUM; i++) {
+	for (int64_t i = 0; i < TEST_NUM; i++) {
 		// cout << endl << "ITER: " << i << " ___________________________\n" << endl;
 
 		for (int j = 0; j < N; j++) {
@@ -67,16 +67,17 @@ int main(void)
 		// 	printf("%3d %3d ", x_symbol[l].real(), x_symbol[l].imag());
 		// cout << endl;
 
-		// module1.setH(H);									// Feed the H and Y to detector
-		// module1.setY(y_normal);
-		// module1.detect();									// detect	
-		// module1.getX(x_dtc);								// get the solved x symbol
+		// -------- floating point ---------
+		module1.setH(H);									// Feed the H and Y to detector
+		module1.setY(y_normal);
+		module1.detect();									// detect	
+		module1.getX(x_dtc);								// get the solved x symbol
 		// module1.output_X_CSV(x_symbol);
 		// module1.output_R_tmn();
 
-		module1.q_detect(H, y_normal);
-		module1.getX(x_dtc);								// get the solved x symbol
-
+		// -------- fixed point ---------
+		// module1.q_detect(H, y_normal);
+		// module1.getX(x_dtc);								// get the solved x symbol
 
 		// check result
 		for (int j = 0; j < N; j++) {

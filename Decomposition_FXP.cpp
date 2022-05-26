@@ -102,9 +102,9 @@ void MIMO_4x4::q_decompositionFull()
 	power2 = 1 << FRAC;
 	for (i = 0; i < 8; i++) {
 		for (j = 0; j < 8; j++) {
-			qR_flp[i][j] = (double)qR[i][j] / power2;
+			qR_flp[i][j] = R[i][j] = (double)qR[i][j] / power2;
 		}
-		qYtrans_flp[i] = (double)qYtrans[i] / power2;
+		qYtrans_flp[i] = Yexp[i] = (double)qYtrans[i] / power2;
 	}
 }
 

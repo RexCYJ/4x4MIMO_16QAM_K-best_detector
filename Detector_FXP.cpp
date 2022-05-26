@@ -20,12 +20,15 @@ void MIMO_4x4::q_detect(complex<double> **Hin, complex<double> *Yin)
 	// DecomposeError();
 
 	// Kbest_optiK();
-	q_Kbest_optiK();
+	// q_Kbest_optiK();
+	q_Kbest4();
+	// Kbest4();
 	// Kbest3();
 
 	xRearrange();
 }
 
+// Quantilized optimized K-best algorithm
 void MIMO_4x4::q_Kbest_optiK()
 {
 	const int K = 3;					// the number of candidates
@@ -105,11 +108,6 @@ void MIMO_4x4::q_Kbest_optiK()
 	T[1] = kcand[1].second;
 	T[2] = kcand[2].second;
 
-	// printf("Fin %6d %6d %6d\n", T[0], T[1], T[2]);
-	// for (i = 0; i < K; i++) {
-	// 	printf("%3d -> %3d -> %3d\n", Kpath[i][7], Kpath[i][6], Kpath[i][5]);
-	// }
-
 	// Finished Two Levels
 
 	for (int l = 4; l >= 0; l--) {				// search each level
@@ -185,3 +183,100 @@ void MIMO_4x4::q_Kbest_optiK()
 
 }
 
+// Quantilized K-best algorithm with K = 4
+void MIMO_4x4::q_Kbest4()
+{
+	const int K = 4;					// the number of candidates
+	vector<int> path(8, 0);				// selected X
+	vector<vector<int>> temp(K, path);	// store the next level candidate
+	vector<vector<int>> Kpath(K, path);	// the K solutions
+	int32_t T[K] = {0}, tempT[K] = {0};	// the path error accumulator
+	int32_t CurLevelErr[K] = {0};
+	pair<int, int32_t> kcand[K];			// store the possible candidate
+										// (index of QAM16_val[], error)
+	pair<int, int> order[K];			// <type of enum path, current index>
+	// int ZZstep[K];
+
+	int32_t err = 0, minerr = 0, accumErr = 0,hx = 0;
+	int32_t MAX = (1 << 20) - 1;
+	int i, j, k, bestpath = 0;
+
+	// for (i = 0; i < K; i++)
+	// 	kcand[i] = make_pair(0, MAX);	// initialize the candidate container
+
+	// initialize the level 7 of the i-th Kpath
+	for (i = 0; i < 4; i++) {
+		err = (int32_t)qYtrans[7] - (((int32_t)qR[7][7] * QAM16_q_normval[i]) >> FRAC);
+		err = (err * err) >> FRAC;								// square
+		T[i] = err;
+		Kpath.at(i).at(7) = i;
+	}
+
+	for (int l = 6; l >= 0; l--) {				// search each level
+
+		// Find the first best child of each path
+		for (k = 0; k < K; k++) {
+			hx = 0;
+			// update the accumulated error
+			for (j = 7; j > l; j--) 
+				hx += ((int32_t)qR[l][j] * QAM16_q_normval[Kpath.at(k).at(j)]) >> FRAC;
+			CurLevelErr[k] = (int32_t)qYtrans[l] - hx;					// the rest y value
+
+			// find the best first child
+			kcand[k].second = MAX;
+			for (i = 0; i < 4; i++) {
+				err = CurLevelErr[k] - (((int32_t)qR[l][l] * QAM16_q_normval[i]) >> FRAC);
+				accumErr = T[k] + ((err * err) >> FRAC);
+				if (kcand[k].second > accumErr) {
+					kcand[k] = make_pair(i, accumErr);
+					Kpath.at(k).at(l) = kcand[k].first;
+					
+					order[k].first = kcand[k].first * 2;
+					if (!((err & 0x80000000) ^ (qR[l][l] & 0x8000000))) order[k].first++;	// if err and R[l][l] are same sign, x > kcand[k].first so order + 1;
+					order[k].second = 0;	// start from first
+				}
+			}
+		}	// End finding best child
+		
+		// find the best path
+		for (k = 0; k < K; k++) {
+			minerr = 10000;
+			bestpath = 0;
+
+			// Find the current best path
+			for (j = 0; j < K; j++)					
+				if (kcand[j].second < minerr) {
+					bestpath = j;
+					minerr = kcand[j].second;
+				}
+			
+			// store the selected path to temp
+			temp.at(k).assign(Kpath[bestpath].begin(), Kpath[bestpath].end());
+			tempT[k] = kcand[bestpath].second;
+
+			// replace the selected path with its sibling, select the neighbor child
+			// Zig-Zag searching
+			if (k < 3) {
+				kcand[bestpath].first =zigzag_path[order[bestpath].first][order[bestpath].second];
+				order[bestpath].second++;
+
+				// calculate the error of new path
+				err = CurLevelErr[bestpath] - (((int32_t)qR[l][l] * QAM16_q_normval[kcand[bestpath].first]) >> FRAC);
+				accumErr = T[bestpath] + ((err * err) >> FRAC);
+				kcand[bestpath].second = accumErr;
+				Kpath[bestpath][l] = kcand[bestpath].first;
+			}
+		}
+
+		Kpath.at(0).assign(temp.at(0).begin(), temp.at(0).end());	// the best path
+		Kpath.at(1).assign(temp.at(1).begin(), temp.at(1).end());
+		Kpath.at(2).assign(temp.at(2).begin(), temp.at(2).end());
+		Kpath.at(3).assign(temp.at(3).begin(), temp.at(3).end());
+		T[0] = tempT[0]; T[1] = tempT[1]; T[2] = tempT[2]; T[3] = tempT[3];
+	}
+
+	// mapping
+	for (int j = 0; j < 8; j++)
+		x[j] = QAM16_val[Kpath[0][j]];
+
+}

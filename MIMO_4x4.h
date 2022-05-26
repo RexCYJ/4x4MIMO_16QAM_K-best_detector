@@ -21,7 +21,7 @@ using std::make_pair;
 
 #define FRAC 12
 #define INTE 2
-#define ANGLE_FRAC 15
+// #define ANGLE_FRAC 15
 
 ofstream out("matrix.csv");
 
@@ -38,6 +38,11 @@ const int QAM16_val[4] = {-3, -1, 1, 3};	// 16-QAM value
 const double QAM16_normval[4] = {-0.94868, -0.31623, 0.31623, 0.94868};
 const int32_t QAM16_q_normval[4] = {-3886, -1295, 1295, 3886};
 const double KMOD = 3.16228;				// sqrt(10)
+
+const int zigzag_path[8][3] = {
+	{1, 2, 3}, {1, 2, 3}, {0, 2, 3}, {2, 0, 3},
+	{1, 3, 0}, {3, 1, 0}, {2, 1, 0}, {2, 1, 0}
+};
 
 // An 4x4 (NxM) MIMO system
 // Modulation: 16-QAM
@@ -72,11 +77,13 @@ class MIMO_4x4
 
 		void q_decompositionFull();
 		void q_Kbest_optiK();
+		void q_Kbest4();
 		void DecomposeError();
 		
 		void ML();
 		void Kbest();
 		void Kbest3();
+		void Kbest4();
 		void Kbest_optiK();
 
 		void decompositionHalf();
