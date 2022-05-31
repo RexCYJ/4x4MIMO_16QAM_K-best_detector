@@ -198,7 +198,7 @@ void MIMO_4x4::q_Kbest4()
 	// int ZZstep[K];
 
 	int32_t err = 0, minerr = 0, accumErr = 0,hx = 0;
-	int32_t MAX = (1 << 20) - 1;
+	int32_t MAX = 1 << 25;
 	int i, j, k, bestpath = 0;
 
 	// for (i = 0; i < K; i++)
@@ -206,8 +206,8 @@ void MIMO_4x4::q_Kbest4()
 
 	// initialize the level 7 of the i-th Kpath
 	for (i = 0; i < 4; i++) {
-		err = (int32_t)qYtrans[7] - (((int32_t)qR[7][7] * QAM16_q_normval[i]) >> FRAC);
-		err = (err * err) >> FRAC;								// square
+		err = (qYtrans[7] - (((int64_t)qR[7][7] * QAM16_q_normval[i]) >> FRAC)) >> (FRAC - ERR_FRAC);
+		err = (err * err) >> ERR_FRAC;								// square
 		T[i] = err;
 		Kpath.at(i).at(7) = i;
 	}
@@ -219,20 +219,21 @@ void MIMO_4x4::q_Kbest4()
 			hx = 0;
 			// update the accumulated error
 			for (j = 7; j > l; j--) 
-				hx += ((int32_t)qR[l][j] * QAM16_q_normval[Kpath.at(k).at(j)]) >> FRAC;
-			CurLevelErr[k] = (int32_t)qYtrans[l] - hx;					// the rest y value
+				hx += ((int64_t)qR[l][j] * QAM16_q_normval[Kpath.at(k).at(j)]) >> FRAC;
+			CurLevelErr[k] = (int64_t)qYtrans[l] - hx;					// the rest y value
 
 			// find the best first child
 			kcand[k].second = MAX;
 			for (i = 0; i < 4; i++) {
-				err = CurLevelErr[k] - (((int32_t)qR[l][l] * QAM16_q_normval[i]) >> FRAC);
-				accumErr = T[k] + ((err * err) >> FRAC);
+				err = (CurLevelErr[k] - (((int64_t)qR[l][l] * QAM16_q_normval[i]) >> FRAC)) >> (FRAC - ERR_FRAC);
+				accumErr = T[k] + ((err * (int64_t)err) >> ERR_FRAC);
 				if (kcand[k].second > accumErr) {
 					kcand[k] = make_pair(i, accumErr);
 					Kpath.at(k).at(l) = kcand[k].first;
 					
 					order[k].first = kcand[k].first * 2;
-					if (!((err & 0x80000000) ^ (qR[l][l] & 0x8000000))) order[k].first++;	// if err and R[l][l] are same sign, x > kcand[k].first so order + 1;
+					// if err and R[l][l] are same sign, x > kcand[k].first so order + 1;
+					if (!((err & 0x80000000) ^ (qR[l][l] & 0x80000000))) order[k].first++;	
 					order[k].second = 0;	// start from first
 				}
 			}
@@ -261,8 +262,8 @@ void MIMO_4x4::q_Kbest4()
 				order[bestpath].second++;
 
 				// calculate the error of new path
-				err = CurLevelErr[bestpath] - (((int32_t)qR[l][l] * QAM16_q_normval[kcand[bestpath].first]) >> FRAC);
-				accumErr = T[bestpath] + ((err * err) >> FRAC);
+				err = (CurLevelErr[bestpath] - (((int64_t)qR[l][l] * QAM16_q_normval[kcand[bestpath].first]) >> FRAC)) >> (FRAC - ERR_FRAC);
+				accumErr = T[bestpath] + ((err * (int64_t)err) >> ERR_FRAC);
 				kcand[bestpath].second = accumErr;
 				Kpath[bestpath][l] = kcand[bestpath].first;
 			}

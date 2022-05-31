@@ -218,7 +218,9 @@ void MIMO_4x4::decompositionFull()
 			minpower = colpower[j];
 			mincol = j;
 		}
+		// printf("[%d]=%.4f ", j, colpower[j]);
 	}
+	// cout << endl;
 
 	for (int j = 0; j < 7; j++) {
 		// Move the minimum power column to first column
@@ -248,7 +250,9 @@ void MIMO_4x4::decompositionFull()
 				minpower = colpower[k];
 				mincol = k;
 			}
+			// printf("[%d]=%.4f ", k, colpower[k]);
 		}
+		// cout << endl;
 	}
 }
 

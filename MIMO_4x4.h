@@ -20,6 +20,8 @@ using std::make_pair;
 #define M 4
 
 #define FRAC 12
+#define COLLEN_FRAC 3
+#define ERR_FRAC 8
 #define INTE 2
 // #define ANGLE_FRAC 15
 
@@ -36,7 +38,7 @@ const int q_Const = (1 / An) * (1 << FRAC);
 
 const int QAM16_val[4] = {-3, -1, 1, 3};	// 16-QAM value
 const double QAM16_normval[4] = {-0.94868, -0.31623, 0.31623, 0.94868};
-const int32_t QAM16_q_normval[4] = {-3886, -1295, 1295, 3886};
+int32_t QAM16_q_normval[4]; 	//  = {-3886, -1295, 1295, 3886};
 const double KMOD = 3.16228;				// sqrt(10)
 
 const int zigzag_path[8][3] = {
@@ -68,8 +70,8 @@ class MIMO_4x4
 		double Yexp[2 * N];			// 
 		int xIndex[2 * M];			// indicate the rearranged column index
 		int x[2 * M];				
-		int16_t qH[2 * N][2 * N], qY[2 * N];
-		int16_t qR[2 * N][2 * N], qYtrans[2 * N];		// for fixed-point-decomposed result
+		int32_t qH[2 * N][2 * N], qY[2 * N];
+		int32_t qR[2 * N][2 * N], qYtrans[2 * N];		// for fixed-point-decomposed result
 
 		double qR_flp[2 * N][2 * N], qYtrans_flp[2 * N];
 
@@ -109,6 +111,8 @@ MIMO_4x4::MIMO_4x4()
 	H[3] = new complex<double>[M];
 	y = new complex<double>[M];
 	xComplex = new complex<int>[M];
+	for (int i = 0; i < 4; i++)
+		QAM16_q_normval[i] = (QAM16_val[i] / sqrt(10)) * (1 << FRAC);
 }
 
 #include "Detector_FLP.cpp"

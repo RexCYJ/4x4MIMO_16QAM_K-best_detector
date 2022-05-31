@@ -9,9 +9,20 @@
 
 using std::norm;
 
-const int64_t TEST_NUM = 50000;
+const int64_t TEST_NUM = 1000000;
 
-const double NOISE_SIGMA = 0.0224;
+// const double NOISE_SIGMA = 0.5006;
+// const double NOISE_SIGMA = 0.3976;
+// const double NOISE_SIGMA = 0.3159;
+// const double NOISE_SIGMA = 0.2236;
+// const double NOISE_SIGMA = 0.1583;
+// const double NOISE_SIGMA = 0.1257;
+// const double NOISE_SIGMA = 0.0999;
+// const double NOISE_SIGMA = 0.0707;
+// const double NOISE_SIGMA = 0.0562;
+// const double NOISE_SIGMA = 0.0398;
+const double NOISE_SIGMA = 0.0282;
+// const double NOISE_SIGMA = 0.0224;
 
 const double NOISE_R_SIGMA = sqrt(NOISE_SIGMA * NOISE_SIGMA * 2);
 const double H_X_SIGMA = 0.35355;		// 1/sqrt(8)
@@ -68,16 +79,16 @@ int main(void)
 		// cout << endl;
 
 		// -------- floating point ---------
-		module1.setH(H);									// Feed the H and Y to detector
-		module1.setY(y_normal);
-		module1.detect();									// detect	
-		module1.getX(x_dtc);								// get the solved x symbol
+		// module1.setH(H);									// Feed the H and Y to detector
+		// module1.setY(y_normal);
+		// module1.detect();									// detect	
+		// module1.getX(x_dtc);								// get the solved x symbol
 		// module1.output_X_CSV(x_symbol);
 		// module1.output_R_tmn();
 
 		// -------- fixed point ---------
-		// module1.q_detect(H, y_normal);
-		// module1.getX(x_dtc);								// get the solved x symbol
+		module1.q_detect(H, y_normal);
+		module1.getX(x_dtc);								// get the solved x symbol
 
 		// check result
 		for (int j = 0; j < N; j++) {

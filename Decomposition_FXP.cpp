@@ -3,11 +3,11 @@
 
 void MIMO_4x4::q_decompositionFull()
 {
-	int power2 = 0, power2_Y;
-	int16_t colpower[2 * M] = {0}, minpower, temp;
-	int16_t mincol = 0, tmp;
-	int16_t di = 0;
-	int i, j, k, col, iter;
+	int power2 = 0;
+	int32_t colpower[2 * M] = {0}, minpower, temp;
+	int32_t mincol = 0, tmp;
+	int32_t di = 0;
+	int i, j, col, iter;
 
 	decomposeType = 1;
 
@@ -19,17 +19,20 @@ void MIMO_4x4::q_decompositionFull()
 	}
 
 	// Initiate the column power
-	minpower = (1 << 14);
+	minpower = (1 << 25);
 	for (j = 0; j < 8; j++) {
 		colpower[j] = 0;
 		xIndex[j] = j;							// initialize xIndex
 		for (i = 0; i < 8; i++) 
-			colpower[j] += ((int32_t)qR[i][j] * (int32_t)qR[i][j]) >> FRAC;
+			colpower[j] += (((int32_t)qR[i][j] >> (FRAC - COLLEN_FRAC)) 
+							* (((int32_t)qR[i][j]) >> (FRAC - COLLEN_FRAC))) >> COLLEN_FRAC;
+		// printf("[%1d]=%4d ", j, colpower[j]);
 		if (colpower[j] < minpower) {
 			minpower = colpower[j];
 			mincol = j;
 		}
 	}
+	// cout << endl;
 
 	for (j = 0; j < 7; j++) {
 		// output_qRY_tmn();
@@ -66,6 +69,7 @@ void MIMO_4x4::q_decompositionFull()
 
 			}
 
+			// CORDIC core
 			for (iter = 0; iter < CORDIC_ITER; iter++) {
 				di = (qR[i][j] < 0)? 1: -1;
 				for (col = j; col < 2 * N; col++) {
@@ -80,22 +84,25 @@ void MIMO_4x4::q_decompositionFull()
 
 			// Normalize 
 			for (col = j; col < 2 * N; col++) {
-				qR[j][col] = ((int32_t)qR[j][col] * (int32_t)q_Const) >> FRAC;
-				qR[i][col] = ((int32_t)qR[i][col] * (int32_t)q_Const) >> FRAC;
+				qR[j][col] = ((int64_t)qR[j][col] * (int32_t)q_Const) >> FRAC;
+				qR[i][col] = ((int64_t)qR[i][col] * (int32_t)q_Const) >> FRAC;
 			}
-			qYtrans[j] = ((int32_t)qYtrans[j] * (int32_t)q_Const) >> FRAC;
-			qYtrans[i] = ((int32_t)qYtrans[i] * (int32_t)q_Const) >> FRAC;
+			qYtrans[j] = ((int64_t)qYtrans[j] * (int32_t)q_Const) >> FRAC;
+			qYtrans[i] = ((int64_t)qYtrans[i] * (int32_t)q_Const) >> FRAC;
 		}
 
 		// Recalculate the column power
-		minpower = 1 << 14;
+		minpower = 1 << 25;
 		for (int col = j + 1; col < 8; col++) {
-			colpower[col] -= ((int32_t)qR[j][col] * (int32_t)qR[j][col]) >> FRAC;
+			colpower[col] -= ((qR[j][col] >> (FRAC - COLLEN_FRAC)) 
+							* (qR[j][col] >> (FRAC - COLLEN_FRAC))) >> COLLEN_FRAC;
 			if (colpower[col] < minpower) {
 				minpower = colpower[col];
 				mincol = col;
 			}
+			// printf("[%1d]=%4d ", col, colpower[col]);
 		}
+		// cout << endl;
 	}	// Go to eliminate next column
 
 	// convert to floating point
