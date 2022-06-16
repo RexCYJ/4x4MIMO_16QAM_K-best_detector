@@ -20,10 +20,9 @@ using std::make_pair;
 #define M 4
 
 #define FRAC 12
-#define COLLEN_FRAC 3
-#define ERR_FRAC 8
+#define COLLEN_FRAC 4
+#define ERR_FRAC 12
 #define INTE 2
-// #define ANGLE_FRAC 15
 
 ofstream out("matrix.csv");
 

@@ -201,9 +201,6 @@ void MIMO_4x4::q_Kbest4()
 	int32_t MAX = 1 << 25;
 	int i, j, k, bestpath = 0;
 
-	// for (i = 0; i < K; i++)
-	// 	kcand[i] = make_pair(0, MAX);	// initialize the candidate container
-
 	// initialize the level 7 of the i-th Kpath
 	for (i = 0; i < 4; i++) {
 		err = (qYtrans[7] - (((int64_t)qR[7][7] * QAM16_q_normval[i]) >> FRAC)) >> (FRAC - ERR_FRAC);
@@ -227,6 +224,7 @@ void MIMO_4x4::q_Kbest4()
 			for (i = 0; i < 4; i++) {
 				err = (CurLevelErr[k] - (((int64_t)qR[l][l] * QAM16_q_normval[i]) >> FRAC)) >> (FRAC - ERR_FRAC);
 				accumErr = T[k] + ((err * (int64_t)err) >> ERR_FRAC);
+
 				if (kcand[k].second > accumErr) {
 					kcand[k] = make_pair(i, accumErr);
 					Kpath.at(k).at(l) = kcand[k].first;
@@ -245,7 +243,7 @@ void MIMO_4x4::q_Kbest4()
 			bestpath = 0;
 
 			// Find the current best path
-			for (j = 0; j < K; j++)					
+			for (j = 0; j < K; j++)	
 				if (kcand[j].second < minerr) {
 					bestpath = j;
 					minerr = kcand[j].second;
@@ -267,14 +265,14 @@ void MIMO_4x4::q_Kbest4()
 				kcand[bestpath].second = accumErr;
 				Kpath[bestpath][l] = kcand[bestpath].first;
 			}
-		}
+		}	// End the level searching
 
 		Kpath.at(0).assign(temp.at(0).begin(), temp.at(0).end());	// the best path
 		Kpath.at(1).assign(temp.at(1).begin(), temp.at(1).end());
 		Kpath.at(2).assign(temp.at(2).begin(), temp.at(2).end());
 		Kpath.at(3).assign(temp.at(3).begin(), temp.at(3).end());
 		T[0] = tempT[0]; T[1] = tempT[1]; T[2] = tempT[2]; T[3] = tempT[3];
-	}
+	}	// End K-best
 
 	// mapping
 	for (int j = 0; j < 8; j++)
