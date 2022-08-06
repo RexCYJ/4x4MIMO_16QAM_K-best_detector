@@ -3,9 +3,12 @@
 #include "MIMO_4x4.h"
 
 // input: complex NxN H, complex Nx1 Y
-void MIMO_4x4::q_detect(complex<double> **Hin, complex<double> *Yin)
+void MIMO_4x4::q_detect()
 {
-	q_Input(Hin, Yin);
+	output_qHY_tmn();
+	output_qHY_verilog();
+	// output_qHY_verilog_batch();
+
 	q_decompositionFull();
 	
 	// output_qRY_tmn();
@@ -16,8 +19,6 @@ void MIMO_4x4::q_detect(complex<double> **Hin, complex<double> *Yin)
 	// setY(Yin);
 	// decompositionFull();
 	// output_RY_tmn();
-
-	// DecomposeError();
 
 	// Kbest_optiK();
 	// q_Kbest_optiK();

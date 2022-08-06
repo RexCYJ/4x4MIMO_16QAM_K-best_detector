@@ -11,6 +11,7 @@ using std::cout;
 using std::endl;
 using std::complex;
 using std::norm;
+using std::ifstream;
 using std::ofstream;
 using std::vector;
 using std::pair;
@@ -24,7 +25,14 @@ using std::make_pair;
 #define ERR_FRAC 12
 #define INTE 2
 
-ofstream out("matrix.csv");
+ofstream out(".\\data\\matrix.csv");
+ofstream out_verilog(".\\data\\dat.txt");
+ofstream out0_verilog(".\\data\\data0.txt");
+ofstream out1_verilog(".\\data\\data1.txt");
+ofstream out2_verilog(".\\data\\data2.txt");
+ofstream out3_verilog(".\\data\\data3.txt");
+ofstream xout_verilog(".\\data\\xdat.txt");
+ifstream file_HYX(".\\data\\testHY.txt");
 
 const int CORDIC_ITER = 9;					// Number of iteration
 const double arctan2[15] 
@@ -52,12 +60,14 @@ class MIMO_4x4
 	public:
 		MIMO_4x4();
 		void detect();
-		void q_detect(complex<double> **, complex<double> *);	// Input H and Y
+		void q_detect();	// Input H and Y
 		void setH(complex<double>** );
 		void setY(complex<double>* );
 		void getX(complex<int>*);
 		void output_X_CSV(complex<int>*);
 		void output_RY_tmn();
+		void q_input_complex2int(complex<double> **, complex<double> *);
+		void q_input_verifyHYX(unsigned char *);
 
 	private:
 		complex<double> **H;		// input H
@@ -71,7 +81,7 @@ class MIMO_4x4
 		int x[2 * M];				
 		int32_t qH[2 * N][2 * N], qY[2 * N];
 		int32_t qR[2 * N][2 * N], qYtrans[2 * N];		// for fixed-point-decomposed result
-
+		int32_t colpower[2 * M];
 		double qR_flp[2 * N][2 * N], qYtrans_flp[2 * N];
 
 		int decomposeType;
@@ -92,13 +102,14 @@ class MIMO_4x4
 		double CORDIC(double &, double &, double &, int);
 		void CORDIC_ROW(double* , double* , int, double);
 		
-		void q_Input(complex<double> **, complex<double> *);
-		
 		void xRearrange();
 		void output_Matrix_CSV();
-		void output_HY_tmn();
+		void output_qHY_tmn();
 		void output_qRY_tmn();
 		void output_qRY_flp_tmn();
+		void output_qRY_verilog();
+		void output_qHY_verilog();
+		void output_qHY_verilog_batch();
 };
 
 MIMO_4x4::MIMO_4x4()

@@ -1,4 +1,5 @@
 // MIMO Detector Simulation
+// Function: verify the given H, Y and X
 // Date: 2022-04-12
 // Author: CYJ
 
@@ -48,75 +49,37 @@ int main(void)
 	x_bit = new unsigned char[M];
 	x_bit_dtc = new unsigned char[M];
 	
-	int64_t TEST_NUM = 1000;
+	int64_t TEST_NUM = 1;
 	
-	auto tmn_cout_buf = cout.rdbuf(xout_verilog.rdbuf());
-	cout.rdbuf(tmn_cout_buf);
-
 	int SNR_idx = 11;
-	// for (SNR_idx = 0; SNR_idx < 12; SNR_idx++) {
-		// if (SNR_idx > 6)	TEST_NUM = 1000000;
-		std::normal_distribution<double> gaussN(0.0, NOISE_SIGMA[SNR_idx]);
-		printf("\nSNR: %2d \n", SNR[SNR_idx]);
+	printf("\nSNR: %2d \n", SNR[SNR_idx]);
 
-		total_Bit_err = total_Sym_err = 0;
+	total_Bit_err = total_Sym_err = 0;
 
-		for (int64_t i = 0; i < TEST_NUM; i++) {
-			for (int j = 0; j < N; j++) {
-				x_bit[j] = xrand(rand_gen);
-				x_symbol[j] = bit2int_dec(x_bit[j]);
-				// std::bitset<4> bs(x_bit[j]);
-				// cout << "bit: " << bs << "  --->   symbol: " << x_symbol[j] << endl;
-				x_normal[j].real(x_symbol[j].real() / KMOD);
-				x_normal[j].imag(x_symbol[j].imag() / KMOD);
-			}
-			cout << i << ": ";
-			for (int j = N-1; j >= 0; j--) {
-				std::bitset<4> bs(x_bit[j]);
-				cout  << bs << ' ';
-				xout_verilog << int(x_bit[j]) << ' ';
-			}
-			xout_verilog << endl;
+	// -------- fixed point ---------
+	module1.q_input_verifyHYX(x_bit);	
+	module1.q_detect();
+	module1.getX(x_dtc);								// get the solved x symbol
+	
+	cout << "ANS: ";
+	for (int j = 0; j < N; j++) {
+		std::bitset<4> bs(x_bit[j]);
+		cout << bs << ' ';
+	}
+	cout << "\nDTC: ";
+	// check result
+	for (int j = 0; j < N; j++) {
+		x_bit_dtc[j] = int2bit_dec(x_dtc[j]);
+		std::bitset<4> bs(x_bit_dtc[j]);
+		cout << bs << ' ';
+		Bit_err[j] = check(x_bit[j], x_bit_dtc[j]);
+		total_Bit_err += Bit_err[j];
+		// total_Sym_err += (Bit_err[j] > 0)? 1:0;
+	}
 
-			cout << endl;
-
-			// -------- floating point ---------
-			// channel(H, y_normal, x_normal, gaussN);			// pass x through the simulated channel
-			// module1.setH(H);									// Feed the H and Y to detector
-			// module1.setY(y_normal);
-			// module1.detect();									// detect	
-			// module1.getX(x_dtc);								// get the solved x symbol
-			// module1.output_X_CSV(x_symbol);
-			// module1.output_R_tmn();
-
-			// -------- fixed point ---------
-			channel(H, y_normal, x_normal, gaussN);				// pass x through the simulated channel
-			module1.q_input_complex2int(H, y_normal);
-			module1.q_detect();
-			module1.getX(x_dtc);								// get the solved x symbol
+	printf("\nBER: %f (%d/%d)\n", 
+			total_Bit_err * 1.0 / (4 * M * TEST_NUM), total_Bit_err, 4 * M * TEST_NUM);
 			
-			// check result
-			for (int j = 0; j < N; j++) {
-				x_bit_dtc[j] = int2bit_dec(x_dtc[j]);
-				Bit_err[j] = check(x_bit[j], x_bit_dtc[j]);
-				total_Bit_err += Bit_err[j];
-				// total_Sym_err += (Bit_err[j] > 0)? 1:0;
-			}
-
-			// if (i % (TEST_NUM / 10) == 0) printf("-");
-		}
-		// cout << "E[|x|] = " << x_total / TEST_NUM << endl;
-		// cout << "E[|y|] = " << y_total / TEST_NUM << endl;
-		// cout << "E[|H|] = " << H_total / TEST_NUM << endl;
-
-		cout << endl;
-		printf("BER: %f (%d/%d)\n", 
-				total_Bit_err * 1.0 / (4 * M * TEST_NUM), total_Bit_err, 4 * M * TEST_NUM);
-		// printf("SER: %9f\n", total_Sym_err * 1.0 / (M * TEST_NUM));
-
-	// }
-
-
 	return 0;
 }
 

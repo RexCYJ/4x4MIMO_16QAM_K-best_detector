@@ -2,41 +2,118 @@
 
 #include "MIMO_4x4.h"
 
-void MIMO_4x4::output_HY_tmn()
+void MIMO_4x4::output_qHY_tmn()
 {
-	cout << "Y[]   \t| H[][]\n";
+	cout << "  Y[] |   H[][]\n";
 	for (int i = 0; i < 2 * N; i++) {
-		printf("%6d | ", qY[i]);
+		printf("%5d | ", qY[i]);
 		for (int j = 0; j < 2 * N; j++)
-			printf("%6d ", qH[i][j]);
+			printf("%5d ", qH[i][j]);
 		cout << endl;
 	}
+	cout << endl;
+}
+
+void MIMO_4x4::output_qHY_verilog()
+{
+	// cout << "\n>> Output verilog format\n\n";
+	auto cout_buf = cout.rdbuf(out_verilog.rdbuf());
+
+	for (int i = 0; i < 2 * N; i++) {
+		for (int j = 0; j < 2 * N; j++)
+			cout << qH[i][j] << ' ';
+		cout << endl;
+	}
+
+	for (int i = 0; i < 2 * N; i++) 
+		cout << qY[i] << ' ';
+	cout << endl << endl;
+
+	cout.rdbuf(cout_buf);
+}
+
+void MIMO_4x4::output_qHY_verilog_batch()
+{
+	static bool is_first = true;
+
+	if (is_first) {
+		out3_verilog << '0' << endl;
+		out2_verilog << '0' << endl;
+		out1_verilog << '0' << endl;
+		out0_verilog << '0' << endl;
+		is_first = false;
+	} 
+	for (int i = 7; i >= 0; i -= 2) {
+		for (int j = 7; j >=0; j -= 4) {
+			out3_verilog << qH[i][j] << endl;
+			out2_verilog << qH[i][j - 1] << endl;
+			out1_verilog << qH[i][j - 2] << endl;
+			out0_verilog << qH[i][j - 3] << endl;
+		}
+	}
+
+	for (int i = 7; i >= 0; i -= 4) {
+		out3_verilog << qY[i] << endl;
+		out2_verilog << qY[i - 1] << endl;
+		out1_verilog << qY[i - 2] << endl;
+		out0_verilog << qY[i - 3] << endl;
+	}
+}
+
+void MIMO_4x4::output_qRY_verilog()
+{
+	cout << "\n>> Output verilog format\n\n";
+	auto cout_buf = cout.rdbuf(out_verilog.rdbuf());
+
+	for (int i = 0; i < 2 * N; i++) {
+		for (int j = 0; j < 2 * N; j++)
+			cout << qR[i][j] << ' ';
+		cout << endl;
+	}
+
+	for (int i = 0; i < 2 * N; i++) 
+		cout << qYtrans[i] << ' ';
+	cout << endl << endl;
+		
+	// for (int i = 0; i < 2 * N; i++)
+	// 	cout << xIndex[i] << ' ';
+	// cout << endl;
+	
+	// for (int i = 0; i < 2 * N; i++)
+	// 	cout << colpower[i] << ' ';
+	// cout << endl;
+
+	cout.rdbuf(cout_buf);
 }
 
 void MIMO_4x4::output_qRY_tmn()
 {
-	cout << "qY[] |  qR[][]\n";
+	// auto cout_buf = cout.rdbuf(out.rdbuf());
+
+	cout << " qY[] |  qR[][]\n";
 	for (int i = 0; i < 2 * N; i++) {
-		// printf("%6d | ", qYtrans[i]);
-		if (qYtrans[i] < 0)
-			printf("%4X | ", -qYtrans[i]);
-		else 
-			printf("%4X | ", qYtrans[i]);
+		printf("%5d | ", qYtrans[i]);
+		// if (qYtrans[i] < 0)
+		// 	printf("%4X | ", qYtrans[i]);
+		// else
+		// 	printf("%4X | ", qYtrans[i]);
 		for (int j = 0; j < 2 * N; j++)
-			// printf("%6d ", qR[i][j]);
-			if (qR[i][j] < 0)
-				printf("%4X ", -qR[i][j]);
-			else 
-				printf("%4X ", qR[i][j]);
+			printf("%5d ", qR[i][j]);
+			// if (qR[i][j] < 0)
+			// 	printf("%4X ", qR[i][j]);
+			// else 
+			// 	printf("%4X ", qR[i][j]);
 		cout << endl;
 	}
 
-	cout << " col | ";
+	cout << "  col | ";
 	for (int i = 0; i < 8; i++)
-		printf("%-5d", xIndex[i]);
+		printf("%-5d ", xIndex[i]);
 
 	cout <<endl;
 	cout <<endl;
+	
+	// cout.rdbuf(cout_buf);
 }
 
 void MIMO_4x4::output_qRY_flp_tmn()
@@ -71,7 +148,7 @@ void MIMO_4x4::output_RY_tmn()
 	cout <<endl;
 }
 
-void MIMO_4x4::q_Input(complex<double> **Hin, complex<double> *Yin)
+void MIMO_4x4::q_input_complex2int(complex<double> **Hin, complex<double> *Yin)
 {
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
@@ -86,7 +163,22 @@ void MIMO_4x4::q_Input(complex<double> **Hin, complex<double> *Yin)
 		qY[2 * i] = Yin[i].real() * (1 << FRAC);
 		qY[2 * i + 1] = Yin[i].imag() * (1 << FRAC);
 	}
-	// outputHY_tmn();
+}
+
+void MIMO_4x4::q_input_verifyHYX(unsigned char *x_bit)
+{
+	for (int i = 0; i < 2 * N; i++) 
+		for (int j = 0; j < 2 * N; j++) 
+			file_HYX >> qH[i][j];
+
+	for (int i = 0; i < 2 * N; i++) 
+		file_HYX >> qY[i];
+
+	int in;	
+	for (int i = 3; i >= 0; i--) {
+		file_HYX >> in;
+		x_bit[i] = in;
+	}
 }
 
 void MIMO_4x4::xRearrange()

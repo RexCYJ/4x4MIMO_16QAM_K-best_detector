@@ -4,7 +4,7 @@
 void MIMO_4x4::q_decompositionFull()
 {
 	int power2 = 0;
-	int32_t colpower[2 * M] = {0}, minpower, temp;
+	int32_t minpower, temp;
 	int32_t mincol = 0, tmp;
 	int32_t di = 0;
 	int i, j, col, iter;
@@ -32,12 +32,12 @@ void MIMO_4x4::q_decompositionFull()
 			mincol = j;
 		}
 	}
-	// cout << endl;
+
+	output_qRY_tmn();
 
 	// Givens Rotation
 	for (j = 0; j < 7; j++) {
-		// output_qRY_tmn();
-
+		
 		// Move the minimum power column to first column
 		if (mincol != j) {
 			for (i = 0; i < 8; i++) {
@@ -53,9 +53,16 @@ void MIMO_4x4::q_decompositionFull()
 			xIndex[j] = xIndex[mincol]; 
 			xIndex[mincol] = tmp;
 		}
+		
+		// printf("***** SOLVING COLUMN: %d *****\n", j);
+		// cout << " norm | ";
+		// for (int i = 0; i < 8; i++)
+		// 	printf(" %3d  ", colpower[i]);
+		// cout << endl << endl;
 
 		// Run CORDIC for each row (Parallelizable)
 		for (i = j + 1; i < 8; i++) {
+			
 			// z = 0;
 			// Adjust the angel to 90 ~ -90 degree
 			if (qR[j][j] < 0) {
@@ -68,7 +75,6 @@ void MIMO_4x4::q_decompositionFull()
 				tmp = -di * qYtrans[i];
 				qYtrans[i] = di * qYtrans[j];
 				qYtrans[j] = tmp;
-
 			}
 
 			// CORDIC core
@@ -91,6 +97,9 @@ void MIMO_4x4::q_decompositionFull()
 			}
 			qYtrans[j] = ((int64_t)qYtrans[j] * (int32_t)q_Const) >> FRAC;
 			qYtrans[i] = ((int64_t)qYtrans[i] * (int32_t)q_Const) >> FRAC;
+
+			output_qRY_tmn();
+
 		}	// End CORDIC
 
 		// Recalculate the column power
@@ -107,7 +116,7 @@ void MIMO_4x4::q_decompositionFull()
 		// cout << endl;
 	}	// Go to eliminate next column
 		// End Givens Rotation
-
+	
 	// convert to floating point
 	power2 = 1 << FRAC;
 	for (i = 0; i < 8; i++) {
