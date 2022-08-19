@@ -1,6 +1,6 @@
-// MIMO Detector Simulation
-// Function: verify the given H, Y and X
-// Date: 2022-04-12
+// MIMO Detector Simulation Verification
+// Function: verify the given H, Y and X in testHY.txt
+// Date: 2022-08-19
 // Author: CYJ
 
 #include <ctime>
@@ -56,19 +56,22 @@ int main(void)
 
 	total_Bit_err = total_Sym_err = 0;
 
+	int columnOrder[8] = {1, 0, 6, 4, 7, 5, 2, 3};
+
 	// -------- fixed point ---------
 	module1.q_input_verifyHYX(x_bit);	
+	module1.columnOrder = columnOrder;
 	module1.q_detect();
 	module1.getX(x_dtc);								// get the solved x symbol
 	
 	cout << "ANS: ";
-	for (int j = 0; j < N; j++) {
+	for (int j = N - 1; j >= 0; j--) {
 		std::bitset<4> bs(x_bit[j]);
 		cout << bs << ' ';
 	}
 	cout << "\nDTC: ";
 	// check result
-	for (int j = 0; j < N; j++) {
+	for (int j = N - 1; j >= 0; j--) {
 		x_bit_dtc[j] = int2bit_dec(x_dtc[j]);
 		std::bitset<4> bs(x_bit_dtc[j]);
 		cout << bs << ' ';

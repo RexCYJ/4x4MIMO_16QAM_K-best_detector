@@ -33,7 +33,8 @@ int main(void)
 	complex<double> **H, *y_normal, *x_normal;
 	complex<int> *x_symbol, *x_dtc;
 	double y_total = 0, x_total = 0, H_total = 0;
-	int Bit_err[N] = {0}, total_Bit_err = 0, total_Sym_err = 0;
+	int Bit_err = 0, total_Bit_err = 0, total_Sym_err = 0;
+	int patherr = 0;
 	unsigned char *x_bit, *x_bit_dtc;
 
 	H = new complex<double>*[N];
@@ -48,18 +49,22 @@ int main(void)
 	x_bit = new unsigned char[M];
 	x_bit_dtc = new unsigned char[M];
 	
-	int64_t TEST_NUM = 1000;
+	int64_t TEST_NUM = 10000;
 	
 	auto tmn_cout_buf = cout.rdbuf(xout_verilog.rdbuf());
 	cout.rdbuf(tmn_cout_buf);
 
 	int SNR_idx = 11;
+
 	// for (SNR_idx = 0; SNR_idx < 12; SNR_idx++) {
-		// if (SNR_idx > 6)	TEST_NUM = 1000000;
+		// if (SNR_idx > 6) TEST_NUM = 200000;
+		// else TEST_NUM = 5000;
 		std::normal_distribution<double> gaussN(0.0, NOISE_SIGMA[SNR_idx]);
 		printf("\nSNR: %2d \n", SNR[SNR_idx]);
 
 		total_Bit_err = total_Sym_err = 0;
+
+		ofstream FILE_xdtc(".\\data\\xdtc_cpp.txt");
 
 		for (int64_t i = 0; i < TEST_NUM; i++) {
 			for (int j = 0; j < N; j++) {
@@ -70,15 +75,8 @@ int main(void)
 				x_normal[j].real(x_symbol[j].real() / KMOD);
 				x_normal[j].imag(x_symbol[j].imag() / KMOD);
 			}
-			cout << i << ": ";
-			for (int j = N-1; j >= 0; j--) {
-				std::bitset<4> bs(x_bit[j]);
-				cout  << bs << ' ';
-				xout_verilog << int(x_bit[j]) << ' ';
-			}
-			xout_verilog << endl;
 
-			cout << endl;
+			// cout << endl;
 
 			// -------- floating point ---------
 			// channel(H, y_normal, x_normal, gaussN);			// pass x through the simulated channel
@@ -96,14 +94,21 @@ int main(void)
 			module1.getX(x_dtc);								// get the solved x symbol
 			
 			// check result
-			for (int j = 0; j < N; j++) {
-				x_bit_dtc[j] = int2bit_dec(x_dtc[j]);
-				Bit_err[j] = check(x_bit[j], x_bit_dtc[j]);
-				total_Bit_err += Bit_err[j];
-				// total_Sym_err += (Bit_err[j] > 0)? 1:0;
+			Bit_err = 0;
+			for (int j = N - 1; j >= 0; j--) {
+				x_bit_dtc[j] = int2bit_dec(x_dtc[j]);			// convert to binary representation
+				Bit_err += check(x_bit[j], x_bit_dtc[j]);		// compare the result with original input x
+				// std::bitset<4> bs(x_bit[j]);
+				// cout  << bs << ' ';
+				xout_verilog << int(x_bit[j]) << ' ';		// export the x
+				FILE_xdtc << int(x_bit_dtc[j]) << ' ';
 			}
+			FILE_xdtc << endl;
+			if (Bit_err > 0) patherr++;
+			total_Bit_err += Bit_err;						// sum up the number of error bits
+			xout_verilog << endl;
 
-			// if (i % (TEST_NUM / 10) == 0) printf("-");
+			if (i % (TEST_NUM / 10) == 0) printf("-");
 		}
 		// cout << "E[|x|] = " << x_total / TEST_NUM << endl;
 		// cout << "E[|y|] = " << y_total / TEST_NUM << endl;
@@ -113,6 +118,7 @@ int main(void)
 		printf("BER: %f (%d/%d)\n", 
 				total_Bit_err * 1.0 / (4 * M * TEST_NUM), total_Bit_err, 4 * M * TEST_NUM);
 		// printf("SER: %9f\n", total_Sym_err * 1.0 / (M * TEST_NUM));
+		printf("PER: %f (%d/%d)\n", patherr * 1.0 / TEST_NUM, patherr, TEST_NUM);
 
 	// }
 

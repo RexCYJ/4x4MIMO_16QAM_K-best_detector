@@ -5,10 +5,10 @@
 clear
 
 %% Read Data
-matdata = matfile('BER.mat', 'Writable', true);
+matdata = matfile('BER.mat', 'Writable',true);
 
 %% SAVEV
-% matdata.BER_4best = zeros(12, 1);
+% matdata.BER_FPGA_16bit = zeros(12, 1);
 
 %% Load
 SNRpoint = matdata.SNRpoint;
@@ -16,6 +16,8 @@ BER_4best_q = matdata.BER_4best_q;
 BER_4best = matdata.BER_4best;
 BER_decom_FXP_FWL = matdata.BER_decom_FXP;
 BER_4best_PED_FWL = matdata.BER_4best_PED_FWL;
+BER_FPGA_15b = matdata.BER_FPGA_15bit;
+BER_FPGA_16b = matdata.BER_FPGA_16bit;
 
 % plot property
 color = ['#0072BD'; '#D95319'; '#EDB120'; '#77AC30'; '#4DBEEE'; '#7E2F8E'; '#A2142F';...
@@ -31,7 +33,7 @@ semilogy(matdata.SNRpoint, matdata.BER_ML, '-ok', 'LineWidth', linewidth); hold 
 semilogy(matdata.SNRpoint, matdata.BER_2best_final, '-^b', 'LineWidth', linewidth);
 semilogy(matdata.SNRpoint, matdata.BER_3best, '-^r', 'LineWidth', linewidth);
 semilogy(matdata.SNRpoint, matdata.BER_4best, '-^', 'color', [0 .7 .2], 'LineWidth', linewidth);
-semilogy(matdata.SNRpoint, matdata.BER_optimized, '-sm', 'LineWidth', linewidth);
+% semilogy(matdata.SNRpoint, matdata.BER_optimized, '-sm', 'LineWidth', linewidth);
 
 axis([0 32 1e-7 1]);
 grid on;
@@ -121,3 +123,20 @@ xlabel('SNR (dB)');
 ylabel('BER');
 title('BER of fixed-point K-best with different FWL of PED');
 
+%% BER of FPGA
+figure
+semilogy(SNRpoint, BER_FPGA_15b((1:12),2), '-s', 'Color', [0 .5 1], 'LineWidth', linewidth); hold on;
+semilogy(SNRpoint, BER_FPGA_16b((1:12),1), '-s', 'Color', 'b', 'LineWidth', linewidth); %hold on;
+semilogy(SNRpoint, BER_decom_FXP_FWL((1:12),4), '-s', 'Color', [0 .5 0 .5], 'LineWidth', linewidth); 
+semilogy(matdata.SNRpoint, matdata.BER_4best, '-^', 'color', [1 0 0 .5], 'LineWidth', linewidth);
+% semilogy(SNRpoint, BER_4best_q((1:12),6), '-s', 'Color', 'g', 'LineWidth', linewidth); 
+% semilogy(SNRpoint, BER_decom_FXP_FWL((1:12),5), '-^', 'Color', color(1,:), 'LineWidth', linewidth);
+% semilogy(SNRpoint, BER_FPGA((1:12),1), '-s', 'Color', 'b', 'LineWidth', linewidth); 
+semilogy(matdata.SNRpoint, matdata.BER_ML, '-ok', 'LineWidth', linewidth);
+grid on;
+
+legend('FPGA implementation last week', 'FPGA implementation this week'...
+		, 'Fixed-point K-best (FWL=12)', 'Floating-point K-best', 'ML');
+xlabel('SNR (dB)');
+ylabel('BER');
+title('BER of K-best MIMO Detector');

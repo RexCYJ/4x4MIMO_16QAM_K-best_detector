@@ -1,13 +1,16 @@
 iter = (0:30);
 theta = atan(0.5.^iter);
-theta = theta * 180 / pi
+theta = theta * 180 / pi;
 An = 1 / prod(cos(atan(0.5.^iter)))
+FWL = 11;
+const = round((1 / An) * (2 ^ FWL))
+q_const = dec2bin(const)
 %%
 Nsigma_x = 0.50059;
 SNR = 10*log10(1) - 10*log10(2 * Nsigma_x^2)
 
 %%
-SNR = 10;
+SNR = 28;
 Nsigma_x = sqrt((10^((10*log10(1) - SNR)/10)) / 2)
 
 %% 
@@ -40,11 +43,13 @@ scatter(1,2)
 format long
 x = [-4, -3, -2, -1, 0];
 mu = 0;
-sigma = 0.7071;
+% sigma = 0.7071;
+sigma = 1;
 p = normcdf(x,mu,sigma) * 2
 
 %%
 format short
 x = [-3 -1 1 3];
-x_normal_q = (x / sqrt(10)) * (2^12)
+FWL = 11;
+x_normal_q = round((x / sqrt(10)) * (2^FWL))
 

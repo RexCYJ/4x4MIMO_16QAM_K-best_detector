@@ -36,6 +36,29 @@ void MIMO_4x4::output_qHY_verilog_batch()
 {
 	static bool is_first = true;
 
+	// if (is_first) {
+	// 	out3_verilog << '0' << endl;
+	// 	out2_verilog << '0' << endl;
+	// 	out1_verilog << '0' << endl;
+	// 	out0_verilog << '0' << endl;
+	// 	is_first = false;
+	// } 
+	// for (int i = 7; i >= 0; i -= 2) {
+	// 	for (int j = 7; j >=0; j -= 4) {
+	// 		out3_verilog << qH[i][j] << endl;
+	// 		out2_verilog << qH[i][j - 1] << endl;
+	// 		out1_verilog << qH[i][j - 2] << endl;
+	// 		out0_verilog << qH[i][j - 3] << endl;
+	// 	}
+	// }
+
+	// for (int i = 7; i >= 0; i -= 4) {
+	// 	out3_verilog << qY[i] << endl;
+	// 	out2_verilog << qY[i - 1] << endl;
+	// 	out1_verilog << qY[i - 2] << endl;
+	// 	out0_verilog << qY[i - 3] << endl;
+	// }
+
 	if (is_first) {
 		out3_verilog << '0' << endl;
 		out2_verilog << '0' << endl;
@@ -43,47 +66,49 @@ void MIMO_4x4::output_qHY_verilog_batch()
 		out0_verilog << '0' << endl;
 		is_first = false;
 	} 
-	for (int i = 7; i >= 0; i -= 2) {
-		for (int j = 7; j >=0; j -= 4) {
-			out3_verilog << qH[i][j] << endl;
-			out2_verilog << qH[i][j - 1] << endl;
-			out1_verilog << qH[i][j - 2] << endl;
-			out0_verilog << qH[i][j - 3] << endl;
-		}
-	}
 
-	for (int i = 7; i >= 0; i -= 4) {
-		out3_verilog << qY[i] << endl;
-		out2_verilog << qY[i - 1] << endl;
-		out1_verilog << qY[i - 2] << endl;
-		out0_verilog << qY[i - 3] << endl;
+	int i = 31;
+	while (i > 2) {
+		out2_verilog << qH[1 + 2 * (i / 8)][i-- % 8] << endl;
+		out1_verilog << qH[1 + 2 * (i / 8)][i-- % 8] << endl;
+		out0_verilog << qH[1 + 2 * (i / 8)][i-- % 8] << endl;
 	}
+	out2_verilog << qH[1][1] << endl;
+	out1_verilog << qH[1][0] << endl;
+	out0_verilog << qY[7] << endl;
+
+	out2_verilog << qY[6] << endl;
+	out1_verilog << qY[5] << endl;
+	out0_verilog << qY[4] << endl;
+
+	out2_verilog << qY[3] << endl;
+	out1_verilog << qY[2] << endl;
+	out0_verilog << qY[1] << endl;
+
+	out2_verilog << qY[0] << endl;
+	out1_verilog << 0 << endl;
+	out0_verilog << 0 << endl;
 }
 
 void MIMO_4x4::output_qRY_verilog()
 {
-	cout << "\n>> Output verilog format\n\n";
-	auto cout_buf = cout.rdbuf(out_verilog.rdbuf());
-
 	for (int i = 0; i < 2 * N; i++) {
 		for (int j = 0; j < 2 * N; j++)
-			cout << qR[i][j] << ' ';
-		cout << endl;
+			Rout_verilog << qR[i][j] << ' ';
+		Rout_verilog << endl;
 	}
 
 	for (int i = 0; i < 2 * N; i++) 
-		cout << qYtrans[i] << ' ';
-	cout << endl << endl;
+		Rout_verilog << qYtrans[i] << ' ';
+	Rout_verilog << endl << endl;
 		
 	// for (int i = 0; i < 2 * N; i++)
-	// 	cout << xIndex[i] << ' ';
-	// cout << endl;
+	// 	Rout_verilog << xIndex[i] << ' ';
+	// Rout_verilog << endl;
 	
 	// for (int i = 0; i < 2 * N; i++)
-	// 	cout << colpower[i] << ' ';
-	// cout << endl;
-
-	cout.rdbuf(cout_buf);
+	// 	Rout_verilog << colpower[i] << ' ';
+	// Rout_verilog << endl << endl;
 }
 
 void MIMO_4x4::output_qRY_tmn()
@@ -178,6 +203,7 @@ void MIMO_4x4::q_input_verifyHYX(unsigned char *x_bit)
 	for (int i = 3; i >= 0; i--) {
 		file_HYX >> in;
 		x_bit[i] = in;
+		xout_verilog << in << ' ';
 	}
 }
 

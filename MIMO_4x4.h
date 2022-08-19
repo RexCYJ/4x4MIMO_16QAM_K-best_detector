@@ -21,12 +21,13 @@ using std::make_pair;
 #define M 4
 
 #define FRAC 12
-#define COLLEN_FRAC 4
+#define COLLEN_FRAC 7
 #define ERR_FRAC 12
 #define INTE 2
 
 ofstream out(".\\data\\matrix.csv");
 ofstream out_verilog(".\\data\\dat.txt");
+ofstream Rout_verilog(".\\data\\Rdat.txt");
 ofstream out0_verilog(".\\data\\data0.txt");
 ofstream out1_verilog(".\\data\\data1.txt");
 ofstream out2_verilog(".\\data\\data2.txt");
@@ -69,6 +70,8 @@ class MIMO_4x4
 		void q_input_complex2int(complex<double> **, complex<double> *);
 		void q_input_verifyHYX(unsigned char *);
 
+		int *columnOrder;
+
 	private:
 		complex<double> **H;		// input H
 		complex<double> *y;			// input y
@@ -81,12 +84,13 @@ class MIMO_4x4
 		int x[2 * M];				
 		int32_t qH[2 * N][2 * N], qY[2 * N];
 		int32_t qR[2 * N][2 * N], qYtrans[2 * N];		// for fixed-point-decomposed result
-		int32_t colpower[2 * M];
+		uint32_t colpower[2 * M];
 		double qR_flp[2 * N][2 * N], qYtrans_flp[2 * N];
 
 		int decomposeType;
 
 		void q_decompositionFull();
+		void q_decompositionFull_test();
 		void q_Kbest_optiK();
 		void q_Kbest4();
 		void DecomposeError();

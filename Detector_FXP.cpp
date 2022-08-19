@@ -5,15 +5,17 @@
 // input: complex NxN H, complex Nx1 Y
 void MIMO_4x4::q_detect()
 {
-	output_qHY_tmn();
+	// output_qHY_tmn();
 	output_qHY_verilog();
-	// output_qHY_verilog_batch();
+	output_qHY_verilog_batch();
 
 	q_decompositionFull();
+	// q_decompositionFull_test();
 	
 	// output_qRY_tmn();
 	// output_RY_tmn();
 	// output_qRY_flp_tmn();
+	// output_qRY_verilog();
 
 	// setH(Hin);
 	// setY(Yin);
